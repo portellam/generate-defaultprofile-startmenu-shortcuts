@@ -3,9 +3,9 @@
 # Author(s):   Alex Portell <github.com/portellam>
 #
 
-$username = $Env:UserName
 $default_username = "Default"
-$default_username_reference = '%username%'
+$username = $Env:UserName
+$username_reference = '%username%'
 
 Write-Host "Creating StartMenu shortcuts..."
 
@@ -42,8 +42,8 @@ foreach($file in $local_path_results)
     $shortcut_path = $shortcut_dir + "\" + $file.BaseName + ".lnk"
 
     $username_temp = "\" + $username + "\"
-    $default_username_reference_temp = "\" + $default_username_reference + "\"
-    $shortcut_target = $file.FullName.Replace($username_temp, $default_username_reference_temp)
+    $username_reference_temp = "\" + $username_reference + "\"
+    $shortcut_target = $file.FullName.Replace($username_temp, $username_reference_temp)
 
     $shortcut = $shell.CreateShortCut($shortcut_path)
     $shortcut.TargetPath = $shortcut_target
