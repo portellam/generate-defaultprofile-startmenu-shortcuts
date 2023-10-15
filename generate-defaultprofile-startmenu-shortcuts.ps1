@@ -61,9 +61,9 @@ function Create-Shortcuts-From-Path($path)
 	  $shortcut_dir = "$startmenu_path\$file_base_dir"
 	  $shortcut_path = "$shortcut_dir\" + $file.BaseName + ".lnk"
 
-	  $username_temp = "\$username\"
+	  $default_username_temp = "\$default_username\"
 	  $username_reference_temp = "\$username_reference\"
-	  $shortcut_target = $file.FullName.Replace($username_temp, $username_reference_temp)
+	  $shortcut_target = $file.FullName.Replace($default_username_temp, $username_reference_temp)
 
 	  $shortcut = $shell.CreateShortCut($shortcut_path)
 	  $shortcut.TargetPath = $shortcut_target
