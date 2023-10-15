@@ -1,69 +1,90 @@
-# Filename:    generate-startmenu-shortcuts.ps1
+# Filename:    generate-defaultprofile-startmenu-shortcuts.ps1
 # Description: Generates executable shortcuts within Start Menu for the Default User.
 # Author(s):   Alex Portell <github.com/portellam>
 #
 
-$default_username = "Default"
-$username = $Env:UserName
-$username_reference = '%username%'
-
-Write-Host "Creating StartMenu shortcuts..."
-
-$appdata_path = "C:\Users\$default_username\AppData"
-$local_path = "$appdata_path\Local\*\*"
-$local_path_results = New-Object System.Collections.ArrayList
-
-foreach($file in Get-ChildItem $local_path)
+function main()
 {
-  if(-not($file -like "*.exe"))
+  $default_username = "Default"
+  $username = $Env:UserName
+  $username_reference = '%username%'
+
+  $appdata_path = "C:\Users\$default_username\AppData"
+  $local_path = "$appdata_path\Local\*\*"
+  $roaming_path = "$appdata_path\Roaming\*\*"
+
+  Write-Host "Creating Start Menu shortcuts for the Default User..."
+
+  if(Create-Shortcuts-From-Path($local_path) -ne 0)
   {
-    continue
+    Write-Host "Failure."
+    exit 1
   }
 
-  $local_path_results.Add($file) *>$null
-}
+  if(Create-Shortcuts-From-Path($roaming_path) -ne 0)
+  {
+    Write-Host "Failure."
+    exit 1
+  }
 
-if($local_path_results.Count -le 0)
-{
-  Write-Host "Skipped."
+  Write-Host "Success."
   exit 0
 }
 
-$startmenu_path = "$appdata_path\Roaming\Microsoft\Windows\Start Menu"
-$shell = New-Object -ComObject WScript.Shell
-$has_passed_once = $false
-
-foreach($file in $local_path_results)
+function Create-Shortcuts-From-Path($path)
 {
-  try
+  $has_passed_once = $false
+  $startmenu_path = "$appdata_path\Roaming\Microsoft\Windows\Start Menu"
+  $path_results = New-Object System.Collections.ArrayList
+  $shell = New-Object -ComObject WScript.Shell
+
+  foreach($file in Get-ChildItem $path)
   {
-    $file_last_folder = (Get-Item $file).Directory.Name
-    $shortcut_dir = $startmenu_path + "\" + $file_last_folder
-    $shortcut_path = $shortcut_dir + "\" + $file.BaseName + ".lnk"
+    if(-not($file -like "*.exe"))
+    {
+      continue
+    }
 
-    $username_temp = "\" + $username + "\"
-    $username_reference_temp = "\" + $username_reference + "\"
-    $shortcut_target = $file.FullName.Replace($username_temp, $username_reference_temp)
-
-    $shortcut = $shell.CreateShortCut($shortcut_path)
-    $shortcut.TargetPath = $shortcut_target
-
-    New-Item -ItemType Directory -Path $shortcut_dir *>$null
-    $shortcut.Save()
-    $has_passed_once = $true
+    $path_results.Add($file) *>$null
   }
-  catch
+
+  if($path_results.Count -lt 1)
   {
-    Write-Host "An error occured:"
-    Write-Host $_.ScriptStackTrace
+    return 0
   }
+
+  foreach($file in $path_results)
+  {
+    try
+    {
+	  $file_base_dir = (Get-Item $file).Directory.Name
+	  $shortcut_dir = "$startmenu_path\$file_base_dir"
+	  $shortcut_path = "$shortcut_dir\" + $file.BaseName + ".lnk"
+
+	  $username_temp = "\$username\"
+	  $username_reference_temp = "\$username_reference\"
+	  $shortcut_target = $file.FullName.Replace($username_temp, $username_reference_temp)
+
+	  $shortcut = $shell.CreateShortCut($shortcut_path)
+	  $shortcut.TargetPath = $shortcut_target
+
+	  New-Item -ItemType Directory -Path $shortcut_dir *>$null
+	  $shortcut.Save()
+	  $has_passed_once = $true
+    }
+    catch
+    {
+	  Write-Host "An error occured:"
+	  Write-Host $_.ScriptStackTrace
+    }
+  }
+
+  if($has_passed_once -eq $false)
+  {
+    return 1
+  }
+
+  return 0
 }
 
-if($has_passed_once -ne $true)
-{
-    Write-Host "Failed."
-    exit 1
-}
-
-Write-Host "Success."
-exit 0
+main
